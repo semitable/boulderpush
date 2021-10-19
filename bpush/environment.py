@@ -181,6 +181,7 @@ class BoulderPush(gym.Env):
 
         # n_xshelf = (self.grid_size[1] - 1) // 3
         # n_yshelf = (self.grid_size[0] - 2) // 9
+        self.grid[:] = 0
 
         # Spawn a boulder..
         # First choose an orientation (pushing boulder north, south, east, or west)
