@@ -248,7 +248,7 @@ class BoulderPush(gym.Env):
         self, actions: List[Direction]
     ) -> Tuple[List[np.ndarray], List[float], List[bool], Dict]:
         assert len(actions) == len(self.agents)
-        
+
         done = False
         # first check if the agents manage to push the boulder
         if (
@@ -277,7 +277,6 @@ class BoulderPush(gym.Env):
             ].sum()
             == self.n_agents
             and all([a == Direction.SOUTH for a in actions])
-            
         ):
             # pushing boulder south
             self.boulder.y += 1
@@ -332,7 +331,7 @@ class BoulderPush(gym.Env):
                 self.grid[_LAYER_AGENTS, agent.y, agent.x] = 0
                 if (
                     action == Direction.NORTH
-                    and agent.y > 0 
+                    and agent.y > 0
                     and self.grid[_LAYER_AGENTS, agent.y - 1, agent.x].sum()
                     + self.grid[_LAYER_BOULDER, agent.y - 1, agent.x].sum()
                     == 0
@@ -340,14 +339,14 @@ class BoulderPush(gym.Env):
                     agent.y -= 1
                 elif (
                     action == Direction.SOUTH
-                    and agent.y < self.grid_size[0]
+                    and agent.y < self.grid_size[0] - 1
                     and self.grid[_LAYER_AGENTS, agent.y + 1, agent.x].sum()
                     + self.grid[_LAYER_BOULDER, agent.y + 1, agent.x].sum()
                     == 0
                 ):
                     agent.y += 1
                 elif (
-                    action == Direction.EAST
+                    action == Direction.WEST
                     and agent.x > 0
                     and self.grid[_LAYER_AGENTS, agent.y, agent.x - 1].sum()
                     + self.grid[_LAYER_BOULDER, agent.y, agent.x - 1].sum()
@@ -355,8 +354,8 @@ class BoulderPush(gym.Env):
                 ):
                     agent.x -= 1
                 elif (
-                    action == Direction.WEST
-                    and agent.x < self.grid_size[0]
+                    action == Direction.EAST
+                    and agent.x < self.grid_size[0] - 1
                     and self.grid[_LAYER_AGENTS, agent.y, agent.x + 1].sum()
                     + self.grid[_LAYER_BOULDER, agent.y, agent.x + 1].sum()
                     == 0
@@ -366,7 +365,12 @@ class BoulderPush(gym.Env):
 
         new_obs = tuple([self._make_obs(agent) for agent in self.agents])
         info = {}
-        return new_obs, self.n_agents*[float(done)*1.0], self.n_agents*[done], info
+        return (
+            new_obs,
+            self.n_agents * [float(done) * 1.0],
+            self.n_agents * [done],
+            info,
+        )
 
     def render(self, mode="human"):
         if not self.renderer:
