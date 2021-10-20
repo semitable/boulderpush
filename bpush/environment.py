@@ -95,6 +95,8 @@ class BoulderPush(gym.Env):
 
         self.grid_size = (height, width)
 
+        self.failed_pushing_penalty = 0.02
+
         self.n_agents = n_agents
         self.sensor_range = sensor_range
         self.reward_range = (0, 1)
@@ -251,6 +253,7 @@ class BoulderPush(gym.Env):
         assert len(actions) == len(self.agents)
 
         done = False
+        reward = np.zeros(self.n_agents, np.float32)
         # first check if the agents manage to push the boulder
         if (
             self.boulder.orientation == Direction.NORTH
@@ -333,42 +336,50 @@ class BoulderPush(gym.Env):
                 if (
                     action == Direction.NORTH
                     and agent.y > 0
-                    and self.grid[_LAYER_AGENTS, agent.y - 1, agent.x].sum()
-                    + self.grid[_LAYER_BOULDER, agent.y - 1, agent.x].sum()
+                    and self.grid[_LAYER_AGENTS, agent.y - 1, agent.x]
                     == 0
                 ):
-                    agent.y -= 1
+                    if self.grid[_LAYER_BOULDER, agent.y - 1, agent.x] == 0:
+                        agent.y -= 1
+                    else:
+                        reward[idx] -= self.failed_pushing_penalty
                 elif (
                     action == Direction.SOUTH
                     and agent.y < self.grid_size[0] - 1
-                    and self.grid[_LAYER_AGENTS, agent.y + 1, agent.x].sum()
-                    + self.grid[_LAYER_BOULDER, agent.y + 1, agent.x].sum()
-                    == 0
+                    and self.grid[_LAYER_AGENTS, agent.y + 1, agent.x] == 0
                 ):
-                    agent.y += 1
+                    if self.grid[_LAYER_BOULDER, agent.y + 1, agent.x] == 0:
+                        agent.y += 1
+                    else:
+                        reward[idx] -= self.failed_pushing_penalty
                 elif (
                     action == Direction.WEST
                     and agent.x > 0
-                    and self.grid[_LAYER_AGENTS, agent.y, agent.x - 1].sum()
-                    + self.grid[_LAYER_BOULDER, agent.y, agent.x - 1].sum()
-                    == 0
+                    and self.grid[_LAYER_AGENTS, agent.y, agent.x - 1] == 0
                 ):
-                    agent.x -= 1
+                    if self.grid[_LAYER_BOULDER, agent.y, agent.x - 1] == 0:
+                        agent.x -= 1
+                    else:
+                        reward[idx] -= self.failed_pushing_penalty
+
                 elif (
                     action == Direction.EAST
                     and agent.x < self.grid_size[0] - 1
-                    and self.grid[_LAYER_AGENTS, agent.y, agent.x + 1].sum()
-                    + self.grid[_LAYER_BOULDER, agent.y, agent.x + 1].sum()
-                    == 0
+                    and self.grid[_LAYER_AGENTS, agent.y, agent.x + 1] == 0
                 ):
-                    agent.x += 1
+                    if self.grid[_LAYER_BOULDER, agent.y, agent.x + 1] == 0:
+                        agent.x += 1
+                    else:
+                        reward[idx] -= self.failed_pushing_penalty
+                
                 self._draw_grid()
 
         new_obs = tuple([self._make_obs(agent) for agent in self.agents])
+        reward += 1.0 if done else 0.0
         info = {}
         return (
             new_obs,
-            self.n_agents * [float(done) * 1.0],
+            reward,
             self.n_agents * [done],
             info,
         )

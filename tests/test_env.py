@@ -190,6 +190,40 @@ def test_push_east_0():
     assert all([r == 1.0 for r in rew])
     assert all(done)
 
+def test_failed_push_east_0():
+    env = BoulderPush(
+        width=10,
+        height=10,
+        n_agents=2,
+        sensor_range=3,
+    )
+    env.reset()
+    env.boulder.orientation = Direction.EAST
+    env.boulder.x = 7
+    env.boulder.y = 2
+
+    env.agents[0].x = 6
+    env.agents[0].y = 2
+
+    env.agents[1].x = 6
+    env.agents[1].y = 3
+
+    env.grid[2, :] = 0
+    env.grid[2, 2:4, 9] = -1
+    env._draw_grid()
+
+    print(env.grid)
+    _, rew, done, _ = env.step([Direction.EAST, Direction.WEST])
+    assert env.agents[0].x == 6 and env.agents[1].x == 5
+    assert env.boulder.x == 7 and env.boulder.y == 2
+    print(rew)
+    assert rew[0] < 0 and rew[1] == 0
+
+    _, rew, done, _ = env.step([Direction.EAST, Direction.WEST])
+    assert env.agents[0].x == 6 and env.agents[1].x == 4
+    assert env.boulder.x == 7 and env.boulder.y == 2
+    assert rew[0] < 0 and rew[1] == 0
+
 
 def test_move_0():
     env = BoulderPush(
@@ -312,7 +346,7 @@ def test_move_2():
     _, rew, done, _ = env.step([Direction.WEST, Direction.EAST])
     assert env.agents[0].x == 5 and env.agents[1].x == 6
     assert env.boulder.x == 7 and env.boulder.x == 7
-    assert sum(rew) == 0
+    assert rew[0] == 0.0 and rew[1] < 0
 
     _, rew, done, _ = env.step([Direction.WEST, Direction.EAST])
     assert env.agents[0].x == 4 and env.agents[1].x == 6
