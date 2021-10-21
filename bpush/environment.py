@@ -95,7 +95,7 @@ class BoulderPush(gym.Env):
 
         self.grid_size = (height, width)
 
-        self.failed_pushing_penalty = 0.02
+        self.failed_pushing_penalty = 0.001
 
         self.n_agents = n_agents
         self.sensor_range = sensor_range
