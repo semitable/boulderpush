@@ -80,6 +80,8 @@ class BoulderPush(gym.Env):
         width: int,
         n_agents: int,
         sensor_range: int,
+        penalty: float = 0.01,
+        incentive: float = 0.1,
     ):
         """The boulder-push environment
 
@@ -95,7 +97,8 @@ class BoulderPush(gym.Env):
 
         self.grid_size = (height, width)
 
-        self.failed_pushing_penalty = 0.001
+        self.push_penalty = penalty
+        self.push_reward = incentive
 
         self.n_agents = n_agents
         self.sensor_range = sensor_range
@@ -270,6 +273,7 @@ class BoulderPush(gym.Env):
             for agent in self.agents:
                 agent.y -= 1
             self._draw_grid()
+            reward += self.push_reward
             done = not self.grid[_LAYER_BOULDER:].sum(axis=0).any()
 
         elif (
@@ -287,6 +291,7 @@ class BoulderPush(gym.Env):
             for agent in self.agents:
                 agent.y += 1
             self._draw_grid()
+            reward += self.push_reward
             done = not self.grid[_LAYER_BOULDER:].sum(axis=0).any()
 
         elif (
@@ -304,6 +309,7 @@ class BoulderPush(gym.Env):
             for agent in self.agents:
                 agent.x += 1
             self._draw_grid()
+            reward += self.push_reward
             done = not self.grid[_LAYER_BOULDER:].sum(axis=0).any()
 
         elif (
@@ -321,6 +327,7 @@ class BoulderPush(gym.Env):
             for agent in self.agents:
                 agent.x -= 1
             self._draw_grid()
+            reward += self.push_reward
             done = not self.grid[_LAYER_BOULDER:].sum(axis=0).any()
 
         else:
@@ -342,7 +349,7 @@ class BoulderPush(gym.Env):
                     if self.grid[_LAYER_BOULDER, agent.y - 1, agent.x] == 0:
                         agent.y -= 1
                     else:
-                        reward[idx] -= self.failed_pushing_penalty
+                        reward[idx] -= self.push_penalty
                 elif (
                     action == Direction.SOUTH
                     and agent.y < self.grid_size[0] - 1
@@ -351,7 +358,7 @@ class BoulderPush(gym.Env):
                     if self.grid[_LAYER_BOULDER, agent.y + 1, agent.x] == 0:
                         agent.y += 1
                     else:
-                        reward[idx] -= self.failed_pushing_penalty
+                        reward[idx] -= self.push_penalty
                 elif (
                     action == Direction.WEST
                     and agent.x > 0
@@ -360,7 +367,7 @@ class BoulderPush(gym.Env):
                     if self.grid[_LAYER_BOULDER, agent.y, agent.x - 1] == 0:
                         agent.x -= 1
                     else:
-                        reward[idx] -= self.failed_pushing_penalty
+                        reward[idx] -= self.push_penalty
 
                 elif (
                     action == Direction.EAST
@@ -370,7 +377,7 @@ class BoulderPush(gym.Env):
                     if self.grid[_LAYER_BOULDER, agent.y, agent.x + 1] == 0:
                         agent.x += 1
                     else:
-                        reward[idx] -= self.failed_pushing_penalty
+                        reward[idx] -= self.push_penalty
                 
                 self._draw_grid()
 
