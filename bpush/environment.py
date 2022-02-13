@@ -95,7 +95,7 @@ class BoulderPush(gym.Env):
         :type sensor_range: int
         """
 
-        self.grid_size = (height, width)
+        self.grid_size = (width, height)
 
         self.push_penalty = penalty
         self.push_reward = incentive

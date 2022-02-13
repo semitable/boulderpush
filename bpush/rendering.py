@@ -11,7 +11,8 @@ import numpy as np
 import math
 import six
 from gym import error
-from rware.warehouse import Direction
+
+from bpush.environment import Direction
 
 if "Apple" in sys.version:
     if "DYLD_FALLBACK_LIBRARY_PATH" in os.environ:
@@ -62,7 +63,8 @@ _SHELF_REQ_COLOR = _TEAL
 _AGENT_COLOR = _DARKORANGE
 _AGENT_LOADED_COLOR = _RED
 _AGENT_DIR_COLOR = _BLACK
-_GOAL_COLOR = (60, 60, 60)
+_BOULDER_COLOR = (70, 70, 70)
+_GOAL_COLOR = (193, 247, 198)
 
 _SHELF_PADDING = 2
 
@@ -125,8 +127,7 @@ class Viewer(object):
         self.window.dispatch_events()
 
         self._draw_grid()
-        self._draw_goals(env)
-        self._draw_shelfs(env)
+        self._draw_boulder(env)
         self._draw_agents(env)
 
         if return_rgb_array:
@@ -177,62 +178,71 @@ class Viewer(object):
             )
         batch.draw()
 
-    def _draw_shelfs(self, env):
+
+    def _draw_boulder(self, env):
         batch = pyglet.graphics.Batch()
 
-        for shelf in env.shelfs:
-            x, y = shelf.x, shelf.y
-            y = self.rows - y - 1  # pyglet rendering is reversed
-            shelf_color = (
-                _SHELF_REQ_COLOR if shelf in env.request_queue else _SHELF_COLOR
-            )
+        boulder = env.boulder
+        dir = boulder.orientation # the push_towards direction
+        size = boulder.size
+        x, y = boulder.x, env.grid_size[0] - boulder.y -1
+        xn, yn = x, y
 
-            batch.add(
-                4,
-                gl.GL_QUADS,
-                None,
+        if dir in (Direction.SOUTH, Direction.NORTH):
+            xn += size - 1
+        else:
+            y -= size - 1
+        
+        batch.add(
+            4,
+            gl.GL_QUADS,
+            None,
+            (
+                "v2f",
                 (
-                    "v2f",
-                    (
-                        (self.grid_size + 1) * x + _SHELF_PADDING + 1,  # TL - X
-                        (self.grid_size + 1) * y + _SHELF_PADDING + 1,  # TL - Y
-                        (self.grid_size + 1) * (x + 1) - _SHELF_PADDING,  # TR - X
-                        (self.grid_size + 1) * y + _SHELF_PADDING + 1,  # TR - Y
-                        (self.grid_size + 1) * (x + 1) - _SHELF_PADDING,  # BR - X
-                        (self.grid_size + 1) * (y + 1) - _SHELF_PADDING,  # BR - Y
-                        (self.grid_size + 1) * x + _SHELF_PADDING + 1,  # BL - X
-                        (self.grid_size + 1) * (y + 1) - _SHELF_PADDING,  # BL - Y
-                    ),
+                    (self.grid_size + 1) * x + 1,  # TL - X
+                    (self.grid_size + 1) * y + 1,  # TL - Y
+                    (self.grid_size + 1) * (xn + 1),  # TR - X
+                    (self.grid_size + 1) * y + 1,  # TR - Y
+                    (self.grid_size + 1) * (xn + 1),  # BR - X
+                    (self.grid_size + 1) * (yn + 1),  # BR - Y
+                    (self.grid_size + 1) * x + 1,  # BL - X
+                    (self.grid_size + 1) * (yn + 1),  # BL - Y
                 ),
-                ("c3B", 4 * shelf_color),
-            )
-        batch.draw()
+            ),
+            ("c3B", 4 * _BOULDER_COLOR),
+        )
 
-    def _draw_goals(self, env):
-        batch = pyglet.graphics.Batch()
+        if dir == Direction.SOUTH:
+            y = yn = 0
+        elif dir == Direction.NORTH:
+            y = yn = env.grid_size[0]-1
+        elif dir == Direction.WEST:
+            x = xn = 0
+        elif dir == Direction.EAST:
+            x = xn = env.grid_size[1]-1
+            
 
-        for goal in env.goals:
-            x, y = goal
-            y = self.rows - y - 1  # pyglet rendering is reversed
-            batch.add(
-                4,
-                gl.GL_QUADS,
-                None,
+        batch.add(
+            4,
+            gl.GL_QUADS,
+            None,
+            (
+                "v2f",
                 (
-                    "v2f",
-                    (
-                        (self.grid_size + 1) * x + 1,  # TL - X
-                        (self.grid_size + 1) * y + 1,  # TL - Y
-                        (self.grid_size + 1) * (x + 1),  # TR - X
-                        (self.grid_size + 1) * y + 1,  # TR - Y
-                        (self.grid_size + 1) * (x + 1),  # BR - X
-                        (self.grid_size + 1) * (y + 1),  # BR - Y
-                        (self.grid_size + 1) * x + 1,  # BL - X
-                        (self.grid_size + 1) * (y + 1),  # BL - Y
-                    ),
+                    (self.grid_size + 1) * x + 1,  # TL - X
+                    (self.grid_size + 1) * y + 1,  # TL - Y
+                    (self.grid_size + 1) * (xn + 1),  # TR - X
+                    (self.grid_size + 1) * y + 1,  # TR - Y
+                    (self.grid_size + 1) * (xn + 1),  # BR - X
+                    (self.grid_size + 1) * (yn + 1),  # BR - Y
+                    (self.grid_size + 1) * x + 1,  # BL - X
+                    (self.grid_size + 1) * (yn + 1),  # BL - Y
                 ),
-                ("c3B", 4 * _GOAL_COLOR),
-            )
+            ),
+            ("c3B", 4 * _GOAL_COLOR),
+        )
+
         batch.draw()
 
     def _draw_agents(self, env):
@@ -267,79 +277,8 @@ class Viewer(object):
                 verts += [x, y]
             circle = pyglet.graphics.vertex_list(resolution, ("v2f", verts))
 
-            draw_color = _AGENT_LOADED_COLOR if agent.carrying_shelf else _AGENT_COLOR
+            draw_color = _AGENT_COLOR
 
             glColor3ub(*draw_color)
             circle.draw(GL_POLYGON)
-
-        for agent in env.agents:
-
-            col, row = agent.x, agent.y
-            row = self.rows - row - 1  # pyglet rendering is reversed
-
-            batch.add(
-                2,
-                gl.GL_LINES,
-                None,
-                (
-                    "v2f",
-                    (
-                        (self.grid_size + 1) * col
-                        + self.grid_size // 2
-                        + 1,  # CENTER X
-                        (self.grid_size + 1) * row
-                        + self.grid_size // 2
-                        + 1,  # CENTER Y
-                        (self.grid_size + 1) * col
-                        + self.grid_size // 2
-                        + 1
-                        + (
-                            radius if agent.dir.value == Direction.RIGHT.value else 0
-                        )  # DIR X
-                        + (
-                            -radius if agent.dir.value == Direction.LEFT.value else 0
-                        ),  # DIR X
-                        (self.grid_size + 1) * row
-                        + self.grid_size // 2
-                        + 1
-                        + (
-                            radius if agent.dir.value == Direction.UP.value else 0
-                        )  # DIR Y
-                        + (
-                            -radius if agent.dir.value == Direction.DOWN.value else 0
-                        ),  # DIR Y
-                    ),
-                ),
-                ("c3B", (*_AGENT_DIR_COLOR, *_AGENT_DIR_COLOR)),
-            )
         batch.draw()
-
-    def _draw_badge(self, row, col, level):
-        resolution = 6
-        radius = self.grid_size / 5
-
-        badge_x = col * self.grid_size + (3 / 4) * self.grid_size
-        badge_y = self.height - self.grid_size * (row + 1) + (1 / 4) * self.grid_size
-
-        # make a circle
-        verts = []
-        for i in range(resolution):
-            angle = 2 * math.pi * i / resolution
-            x = radius * math.cos(angle) + badge_x
-            y = radius * math.sin(angle) + badge_y
-            verts += [x, y]
-        circle = pyglet.graphics.vertex_list(resolution, ("v2f", verts))
-        glColor3ub(*_BLACK)
-        circle.draw(GL_POLYGON)
-        glColor3ub(*_WHITE)
-        circle.draw(GL_LINE_LOOP)
-        label = pyglet.text.Label(
-            str(level),
-            font_name="Times New Roman",
-            font_size=12,
-            x=badge_x,
-            y=badge_y + 2,
-            anchor_x="center",
-            anchor_y="center",
-        )
-        label.draw()
