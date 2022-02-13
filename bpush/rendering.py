@@ -91,8 +91,8 @@ class Viewer(object):
         display = get_display(None)
         self.rows, self.cols = world_size
 
-        self.grid_size = 30
-        self.icon_size = 20
+        self.grid_size = 220
+        self.icon_size = 15
 
         self.width = 1 + self.cols * (self.grid_size + 1)
         self.height = 1 + self.rows * (self.grid_size + 1)
@@ -104,6 +104,15 @@ class Viewer(object):
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+
+        script_dir = os.path.dirname(__file__)
+
+        pyglet.resource.path = [os.path.join(script_dir, "sprites")]
+        pyglet.resource.reindex()
+
+        self.img_arrow = pyglet.resource.image("arrow-right.png")
+        self.img_agent = pyglet.resource.image("agent.png")
 
     def close(self):
         self.window.close()
@@ -213,6 +222,43 @@ class Viewer(object):
             ("c3B", 4 * _BOULDER_COLOR),
         )
 
+
+        # draw the arrows
+        arrows = []
+        arrow_size = (self.grid_size + 2) / self.img_arrow.width
+
+        for arr in range(size):
+            if dir == Direction.SOUTH:
+                row = boulder.y - 2
+                col = boulder.x + arr
+                rot = 90
+            elif dir == Direction.NORTH:
+                row = boulder.y + 1
+                col = boulder.x + arr + 1
+                rot = 270
+
+            elif dir == Direction.EAST:
+                row = boulder.y + arr
+                col = boulder.x - 1
+                rot = 0
+
+            elif dir == Direction.WEST:
+                row = boulder.y + arr - 1
+                col = boulder.x + 2
+                rot = 180
+
+            arrows.append(
+                pyglet.sprite.Sprite(
+                    self.img_arrow,
+                    (self.grid_size + 1) * col + arrow_size / 2,
+                    self.height - (self.grid_size + 1) * (row + 1) + arrow_size / 2,
+                    batch=batch,
+                )
+            )
+        for a in arrows:
+            a.update(scale=arrow_size, rotation=rot)
+            a.opacity = 128
+
         if dir == Direction.SOUTH:
             y = yn = 0
         elif dir == Direction.NORTH:
@@ -249,36 +295,21 @@ class Viewer(object):
         agents = []
         batch = pyglet.graphics.Batch()
 
-        radius = self.grid_size / 3
+        agent_size = (self.grid_size + 2) / self.img_arrow.width
 
-        resolution = 6
 
         for agent in env.agents:
+            row, col = agent.y, agent.x
 
-            col, row = agent.x, agent.y
-            row = self.rows - row - 1  # pyglet rendering is reversed
-
-            # make a circle
-            verts = []
-            for i in range(resolution):
-                angle = 2 * math.pi * i / resolution
-                x = (
-                    radius * math.cos(angle)
-                    + (self.grid_size + 1) * col
-                    + self.grid_size // 2
-                    + 1
+            agents.append(
+                pyglet.sprite.Sprite(
+                    self.img_agent,
+                    (self.grid_size + 1) * col,
+                    self.height - (self.grid_size + 1) * (row + 1),
+                    batch=batch,
                 )
-                y = (
-                    radius * math.sin(angle)
-                    + (self.grid_size + 1) * row
-                    + self.grid_size // 2
-                    + 1
-                )
-                verts += [x, y]
-            circle = pyglet.graphics.vertex_list(resolution, ("v2f", verts))
-
-            draw_color = _AGENT_COLOR
-
-            glColor3ub(*draw_color)
-            circle.draw(GL_POLYGON)
+            )
+        for p in agents:
+            p.update(scale=0.99*agent_size)
         batch.draw()
+        
