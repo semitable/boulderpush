@@ -101,6 +101,7 @@ class BoulderPush(gym.Env):
         self.push_reward = incentive
 
         self.n_agents = n_agents
+        self.boulder_size = min(4, n_agents)
         self.sensor_range = sensor_range
         self.reward_range = (0, 1)
 
@@ -193,27 +194,27 @@ class BoulderPush(gym.Env):
         push_towards = Direction(random.randint(0, 3))
 
         if push_towards == Direction.SOUTH or push_towards == Direction.NORTH:
-            x = random.randint(0, self.grid_size[1] - self.n_agents)
+            x = random.randint(0, self.grid_size[1] - self.boulder_size)
             y = random.randint(1, self.grid_size[0] - 2)
-            self.grid[_LAYER_BOULDER, y, x : x + self.n_agents] = 1
+            self.grid[_LAYER_BOULDER, y, x : x + self.boulder_size] = 1
 
         else:
             x = random.randint(1, self.grid_size[1] - 2)
-            y = random.randint(0, self.grid_size[0] - self.n_agents)
-            self.grid[_LAYER_BOULDER, y : y + self.n_agents, x] = 1
+            y = random.randint(0, self.grid_size[0] - self.boulder_size)
+            self.grid[_LAYER_BOULDER, y : y + self.boulder_size, x] = 1
 
         # set goal
         if push_towards == Direction.SOUTH:
-            self.grid[_LAYER_GOAL, self.grid_size[0] - 1, x : x + self.n_agents] = -1
+            self.grid[_LAYER_GOAL, self.grid_size[0] - 1, x : x + self.boulder_size] = -1
         elif push_towards == Direction.NORTH:
-            self.grid[_LAYER_GOAL, 0, x : x + self.n_agents] = -1
+            self.grid[_LAYER_GOAL, 0, x : x + self.boulder_size] = -1
         elif push_towards == Direction.EAST:
-            self.grid[_LAYER_GOAL, y : y + self.n_agents, self.grid_size[0] - 1] = -1
+            self.grid[_LAYER_GOAL, y : y + self.boulder_size, self.grid_size[0] - 1] = -1
         elif push_towards == Direction.WEST:
-            self.grid[_LAYER_GOAL, y : y + self.n_agents, 0] = -1
+            self.grid[_LAYER_GOAL, y : y + self.boulder_size, 0] = -1
 
         # spawn the boulder
-        self.boulder = Boulder(x, y, self.n_agents, push_towards)
+        self.boulder = Boulder(x, y, self.boulder_size, push_towards)
 
         self.agents = []
         for _ in range(self.n_agents):
@@ -239,12 +240,12 @@ class BoulderPush(gym.Env):
             self.grid[
                 _LAYER_BOULDER,
                 self.boulder.y,
-                self.boulder.x : self.boulder.x + self.n_agents,
+                self.boulder.x : self.boulder.x + self.boulder_size,
             ] = 1
         else:
             self.grid[
                 _LAYER_BOULDER,
-                self.boulder.y : self.boulder.y + self.n_agents,
+                self.boulder.y : self.boulder.y + self.boulder_size,
                 self.boulder.x,
             ] = 1
         for agent in self.agents:
@@ -263,9 +264,9 @@ class BoulderPush(gym.Env):
             and self.grid[
                 _LAYER_AGENTS,
                 self.boulder.y + 1,
-                self.boulder.x : self.boulder.x + self.n_agents,
+                self.boulder.x : self.boulder.x + self.boulder_size,
             ].sum()
-            == self.n_agents
+            == self.boulder_size
             and all([a == Direction.NORTH for a in actions])
         ):
             # pushing boulder north
@@ -281,9 +282,9 @@ class BoulderPush(gym.Env):
             and self.grid[
                 _LAYER_AGENTS,
                 self.boulder.y - 1,
-                self.boulder.x : self.boulder.x + self.n_agents,
+                self.boulder.x : self.boulder.x + self.boulder_size,
             ].sum()
-            == self.n_agents
+            == self.boulder_size
             and all([a == Direction.SOUTH for a in actions])
         ):
             # pushing boulder south
@@ -298,10 +299,10 @@ class BoulderPush(gym.Env):
             self.boulder.orientation == Direction.EAST
             and self.grid[
                 _LAYER_AGENTS,
-                self.boulder.y : self.boulder.y + self.n_agents,
+                self.boulder.y : self.boulder.y + self.boulder_size,
                 self.boulder.x - 1,
             ].sum()
-            == self.n_agents
+            == self.boulder_size
             and all([a == Direction.EAST for a in actions])
         ):
             # pushing boulder east
@@ -316,10 +317,10 @@ class BoulderPush(gym.Env):
             self.boulder.orientation == Direction.WEST
             and self.grid[
                 _LAYER_AGENTS,
-                self.boulder.y : self.boulder.y + self.n_agents,
+                self.boulder.y : self.boulder.y + self.boulder_size,
                 self.boulder.x + 1,
             ].sum()
-            == self.n_agents
+            == self.boulder_size
             and all([a == Direction.WEST for a in actions])
         ):
             # pushing boulder west

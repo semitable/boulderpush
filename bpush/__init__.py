@@ -12,7 +12,7 @@ _sizes = {
 }
 
 for size in _sizes.keys():
-    for n_agents in range(1, 5):
+    for n_agents in range(1, 10):
 
         register(
         id=f"bpush-{size}-{n_agents}ag-v0",
